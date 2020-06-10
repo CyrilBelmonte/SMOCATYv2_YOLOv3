@@ -71,11 +71,11 @@ def main(_argv):
 
         if np.size(cat_det) != 0:
             for cat in cat_det:
-                logging.info('\t{}, {:.2f}'.format(cat[0], cat[1]))
+                logging.info('\t{}, {:.2f}'.format(cat[1], cat[0]))
 
         if np.size(dog_det) != 0:
             for dog in dog_det:
-                logging.info('\t {}, {:.2f}'.format(dog[0], dog[1]))
+                logging.info('\t {}, {:.2f}'.format(dog[1], dog[0]))
 
     logging.info('output saved to: {}'.format(FLAGS.output))
 
