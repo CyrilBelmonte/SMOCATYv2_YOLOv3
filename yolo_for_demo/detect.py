@@ -17,7 +17,7 @@ flags.DEFINE_boolean('tiny', False, 'yolov3 or yolov3-tiny')
 flags.DEFINE_integer('size', 416, 'resize images to')
 flags.DEFINE_string('image', './data/girl.png', 'path to input image')
 flags.DEFINE_string('tfrecord', None, 'tfrecord instead of image')
-flags.DEFINE_string('output', '../output/for_demo/output_'+str(int(time.time()))+'.jpg', 'path to output image')
+flags.DEFINE_string('output', '../output/for_demo/output_' + str(int(time.time())) + '.jpg', 'path to output image')
 flags.DEFINE_integer('num_classes', 80, 'number of classes in the model')
 
 
@@ -78,6 +78,7 @@ def main(_argv):
                 logging.info('\t {}, {:.2f}'.format(dog[1], dog[0]))
 
     logging.info('output saved to: {}'.format(FLAGS.output))
+    cv2.imshow(FLAGS.output)
 
 
 if __name__ == '__main__':

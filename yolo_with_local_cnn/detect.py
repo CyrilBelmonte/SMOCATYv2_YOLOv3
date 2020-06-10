@@ -1,4 +1,5 @@
 import time
+import os
 from absl import app, flags, logging
 from absl.flags import FLAGS
 import cv2
@@ -40,11 +41,13 @@ def main(_argv):
     class_names = [c.strip() for c in open(FLAGS.classes).readlines()]
     logging.info('classes loaded')
 
+    logging.info('load cat model')
     model_cat = cnn.get_inception_v2_cat()
-    logging.info('model cat loaded')
+    logging.info('cat model loaded')
 
+    logging.info('load dog model')
     model_dog = cnn.get_inception_v2_dog()
-    logging.info('model dog loaded')
+    logging.info('dog model loaded')
 
     if FLAGS.tfrecord:
         dataset = load_tfrecord_dataset(
@@ -95,6 +98,8 @@ def main(_argv):
                 logging.info('\t {}, {:.2f}'.format(dog[0], dog[1]))
 
     logging.info('output saved to: {}'.format(FLAGS.output))
+    cv2.imshow(FLAGS.output, img)
+    cv2.waitKey(0)
 
 
 if __name__ == '__main__':
