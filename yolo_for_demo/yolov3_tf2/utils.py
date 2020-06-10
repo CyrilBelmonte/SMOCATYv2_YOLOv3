@@ -4,7 +4,7 @@ import tensorflow as tf
 import cv2
 
 import myTools.image_tools as img_t
-import myTools.cnn_tools as cnn_t
+import myTools.cnn_model as cnn_t
 
 YOLOV3_LAYER_LIST = [
     'yolo_darknet',

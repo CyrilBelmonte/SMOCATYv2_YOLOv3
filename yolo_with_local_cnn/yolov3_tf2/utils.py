@@ -3,8 +3,12 @@ import numpy as np
 import tensorflow as tf
 import cv2
 
-import myTools.image_tools as img_t
-import myTools.cnn_tools as cnn_t
+from multiprocessing.pool import ThreadPool
+
+from myTools import image_tools as img_t
+import myTools.cnn_model as cnn_t
+
+pool = ThreadPool(processes=1)
 
 YOLOV3_LAYER_LIST = [
     'yolo_darknet',
@@ -102,7 +106,7 @@ def broadcast_iou(box_1, box_2):
     return int_area / (box_1_area + box_2_area - int_area)
 
 
-def draw_outputs(img, outputs, class_names):
+def draw_outputs(img, model_cat, model_dog, outputs, class_names, cnn_output):
     boxes, objectness, classes, nums = outputs
     boxes, objectness, classes, nums = boxes[0], objectness[0], classes[0], nums[0]
     wh = np.flip(img.shape[0:2])
@@ -112,25 +116,38 @@ def draw_outputs(img, outputs, class_names):
         x1y1 = tuple((np.array(boxes[i][0:2]) * wh).astype(np.int32))
         x2y2 = tuple((np.array(boxes[i][2:4]) * wh).astype(np.int32))
 
-        x1, y1 = x1y1
-        x2, y2 = x2y2
-        img_crop = img[y1:y1 + (y2 - y1), x1:x1 + (x2 - x1)]
+        if class_names[int(classes[i])] == "cat" or class_names[int(classes[i])] == "dog":
+            if class_names[int(classes[i])] == "cat":
+                cat_det.append([cnn_output[i][1], cnn_output[i][2]])
+            else:
+                dog_det.append([cnn_output[i][1], cnn_output[i][2]])
 
-        img_to_cnn = img_t.load_img_opencv(img_crop)
-        label = ""
-        prob = 0
-        if class_names[int(classes[i])] == "dog":
-            label, prob = cnn_t.get_more_dog(img_to_cnn)
-            dog_det.append([prob, label])
+            img = cv2.rectangle(img, x1y1, x2y2, (0, 0, 0), 2)
+            img = cv2.putText(img, '{} {:.2f} {} {:.2f}'.format(
+                class_names[int(classes[i])], objectness[i], cnn_output[i][1], cnn_output[i][2]),
+                              x1y1, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
+        else:
+            img = cv2.rectangle(img, x1y1, x2y2, (0, 0, 0), 2)
+            img = cv2.putText(img, '{} {:.2f} '.format(
+                class_names[int(classes[i])], objectness[i]),
+                              x1y1, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
+            """
+            x1, y1 = x1y1
+            x2, y2 = x2y2
+            img_crop = img[y1:y1 + (y2 - y1), x1:x1 + (x2 - x1)]
+            img_to_cnn = img_t.load_img_opencv(img_crop)
+            
+            cnns = []
 
-        if class_names[int(classes[i])] == "cat":
-            prob, label = cnn_t.get_more_cat(img_to_cnn)
-            cat_det.append([label, prob])
-
-        img = cv2.rectangle(img, x1y1, x2y2, (0, 0, 0), 2)
-        img = cv2.putText(img, '{} {:.2f} {} {:.2f}'.format(
-            class_names[int(classes[i])], objectness[i], label, prob),
-                          x1y1, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
+            if class_names[int(classes[i])] == "cat":
+                cnns.append(["cat", img_to_cnn, cat_det])
+                label, prob = cnn_t.get_more_cat(model_dog, img_to_cnn)
+                cat_det.append([label, prob])
+            else:
+                cnns.append(["dog", img_to_cnn, cat_det])
+                label, prob = cnn_t.get_more_dog(model_cat, img_to_cnn)
+                dog_det.append([label, prob])
+            """
 
     return img, cat_det, dog_det
 

@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 
-import myTools.image_tools as img_tools
+import yolo_with_local_cnn.myTools.image_tools as img_tools
 
 import socket
 import sys

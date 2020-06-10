@@ -7,6 +7,9 @@ import tensorflow as tf
 from yolov3_tf2.models import (
     YoloV3, YoloV3Tiny
 )
+
+from myTools import cnn_model as cnn
+
 from yolov3_tf2.dataset import transform_images, load_tfrecord_dataset
 from yolov3_tf2.utils import draw_outputs
 
@@ -17,7 +20,7 @@ flags.DEFINE_boolean('tiny', False, 'yolov3 or yolov3-tiny')
 flags.DEFINE_integer('size', 416, 'resize images to')
 flags.DEFINE_string('image', './data/girl.png', 'path to input image')
 flags.DEFINE_string('tfrecord', None, 'tfrecord instead of image')
-flags.DEFINE_string('output', '../output/local_cnn/output_'+str(int(time.time()))+'.jpg', 'path to output image')
+flags.DEFINE_string('output', '../output/local_cnn/output_' + str(int(time.time())) + '.jpg', 'path to output image')
 flags.DEFINE_integer('num_classes', 80, 'number of classes in the model')
 
 
@@ -37,6 +40,12 @@ def main(_argv):
     class_names = [c.strip() for c in open(FLAGS.classes).readlines()]
     logging.info('classes loaded')
 
+    model_cat = cnn.get_inception_v2_cat()
+    logging.info('model cat loaded')
+
+    model_dog = cnn.get_inception_v2_dog()
+    logging.info('model dog loaded')
+
     if FLAGS.tfrecord:
         dataset = load_tfrecord_dataset(
             FLAGS.tfrecord, FLAGS.classes, FLAGS.size)
@@ -52,6 +61,13 @@ def main(_argv):
     t1 = time.time()
     boxes, scores, classes, nums = yolo(img)
     t2 = time.time()
+
+    img = cv2.cvtColor(img_raw.numpy(), cv2.COLOR_RGB2BGR)
+
+    t3 = time.time()
+    cnn_output = cnn.get_more_data(img, model_cat, model_dog, (boxes, scores, classes, nums), class_names)
+    t4 = time.time()
+
     logging.info('time: {}'.format(t2 - t1))
 
     logging.info('primary detections:')
@@ -60,9 +76,10 @@ def main(_argv):
                                            np.array(scores[0][i])))
 
     img = cv2.cvtColor(img_raw.numpy(), cv2.COLOR_RGB2BGR)
-    t3 = time.time()
-    img, cat_det, dog_det = draw_outputs(img, (boxes, scores, classes, nums), class_names)
-    t4 = time.time()
+
+    img, cat_det, dog_det = draw_outputs(img, model_cat, model_dog, (boxes, scores, classes, nums), class_names,
+                                         cnn_output)
+
     cv2.imwrite(FLAGS.output, img)
 
     if np.size(cat_det) != 0 or np.size(dog_det) != 0:
@@ -71,11 +88,11 @@ def main(_argv):
 
         if np.size(cat_det) != 0:
             for cat in cat_det:
-                logging.info('\t{}, {:.2f}'.format(cat[1], cat[0]))
+                logging.info('\t{}, {:.2f}'.format(cat[0], cat[1]))
 
         if np.size(dog_det) != 0:
             for dog in dog_det:
-                logging.info('\t {}, {:.2f}'.format(dog[1], dog[0]))
+                logging.info('\t {}, {:.2f}'.format(dog[0], dog[1]))
 
     logging.info('output saved to: {}'.format(FLAGS.output))
 
