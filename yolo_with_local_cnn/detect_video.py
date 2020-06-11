@@ -9,8 +9,10 @@ from yolov3_tf2.models import (
 from yolov3_tf2.dataset import transform_images
 from yolov3_tf2.utils import draw_outputs
 
-flags.DEFINE_string('classes', './data/coco.names', 'path to classes file')
-flags.DEFINE_string('weights', './checkpoints/yolov3.tf',
+from myTools import cnn_model as cnn
+
+flags.DEFINE_string('classes', '../data/coco.names', 'path to classes file')
+flags.DEFINE_string('weights', '../checkpoints/yolov3.tf',
                     'path to weights file')
 flags.DEFINE_boolean('tiny', False, 'yolov3 or yolov3-tiny')
 flags.DEFINE_integer('size', 416, 'resize images to')
@@ -37,7 +39,16 @@ def main(_argv):
     class_names = [c.strip() for c in open(FLAGS.classes).readlines()]
     logging.info('classes loaded')
 
+    logging.info('load cat model')
+    model_cat = cnn.get_inception_v2_cat()
+    logging.info('cat model loaded')
+
+    logging.info('load dog model')
+    model_dog = cnn.get_inception_v2_dog()
+    logging.info('dog model loaded')
+
     times = []
+    times2 = []
 
     try:
         vid = cv2.VideoCapture(int(FLAGS.video))
@@ -69,12 +80,25 @@ def main(_argv):
         t1 = time.time()
         boxes, scores, classes, nums = yolo.predict(img_in)
         t2 = time.time()
+
+        t3 = time.time()
+        cnn_output = cnn.get_more_data(img, model_cat, model_dog, (boxes, scores, classes, nums), class_names)
+        t4 = time.time()
+
         times.append(t2 - t1)
+        times2.append(t4 - t3)
+
+        times2 = times2[-20:]
         times = times[-20:]
 
-        img = draw_outputs(img, (boxes, scores, classes, nums), class_names)
-        img = cv2.putText(img, "FPS: {:.2f}".format(1 / (sum(times) / len(times)) * 1), (0, 30),
-                          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
+        img, a, b = draw_outputs(img, model_cat, model_dog, (boxes, scores, classes, nums), class_names,
+                                 cnn_output)
+
+        img = cv2.putText(img, "Time prim: {:.2f}ms".format(sum(times) / len(times) * 1000), (0, 30),
+                          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 0), 2)
+
+        img = cv2.putText(img, "Time sec : {:.2f}ms".format((sum(times2) / len(times2)) * 1000), (0, 70),
+                          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 0), 2)
         if FLAGS.output:
             out.write(img)
         cv2.imshow('output', img)
